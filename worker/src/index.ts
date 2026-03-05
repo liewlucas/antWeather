@@ -8,6 +8,7 @@ import { listCaptures, getCaptureImage } from "./routes/captures";
 import { getMonthlySummary } from "./routes/summary";
 import { getAlertLog } from "./routes/alerts";
 import { getSettings, putSettings } from "./routes/settings";
+import { postWebhook } from "./routes/telegram";
 
 export type { Env };
 
@@ -20,6 +21,7 @@ const router = createRouter([
   { method: "GET", pattern: "/api/alerts/log", handler: getAlertLog },
   { method: "GET", pattern: "/api/settings", handler: getSettings },
   { method: "PUT", pattern: "/api/settings", handler: putSettings },
+  { method: "POST", pattern: "/api/telegram/webhook", handler: postWebhook },
 ]);
 
 export default {
