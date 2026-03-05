@@ -2,10 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "../api/client";
 import StatusBadge from "../components/StatusBadge";
 import StationTable from "../components/StationTable";
+import RadarMap from "../components/RadarMap";
 
 interface Station {
   stationId: string;
   name: string;
+  lat: number;
+  lng: number;
   rainfallMm: number;
   distanceKm: number;
   inPolygon: boolean;
@@ -61,7 +64,7 @@ export default function Dashboard() {
       });
       setCheckResult(result);
       setStations(result.nearbyStations);
-      setTimestamp(result.apiTimestamp);
+      setTimestamp(new Date().toISOString());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Check failed");
     } finally {
@@ -102,8 +105,8 @@ export default function Dashboard() {
           <p className="text-sm">
             {timestamp
               ? new Date(timestamp).toLocaleString("en-SG", {
-                  timeZone: "Asia/Singapore",
-                })
+                timeZone: "Asia/Singapore",
+              })
               : "-"}
           </p>
         </div>
@@ -123,6 +126,11 @@ export default function Dashboard() {
           </p>
         </div>
       )}
+
+      <div className="bg-gray-800 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-gray-400 mb-3">Live Radar</h3>
+        <RadarMap stations={stations} />
+      </div>
 
       {error && (
         <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 text-red-300 text-sm">

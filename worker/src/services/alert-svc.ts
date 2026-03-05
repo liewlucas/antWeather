@@ -94,3 +94,93 @@ export async function sendTelegramAlert(
 
   return success;
 }
+
+/** Always sends a status update — used by manual "Check Now" button. No cooldown. */
+export async function sendTelegramStatus(
+  env: Env,
+  result: CheckResult
+): Promise<boolean> {
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return false;
+
+  const sgt = new Date().toLocaleString("en-SG", {
+    timeZone: "Asia/Singapore",
+  });
+
+  let message: string;
+
+  if (result.isRaining) {
+    const stationLines = result.rainingStations
+      .map(
+        (s) =>
+          `  • ${s.name}: ${s.rainfallMm}mm (${s.distanceKm.toFixed(1)}km away)`
+      )
+      .join("\n");
+
+    message = [
+      "🌧️ *Rain Detected*",
+      "",
+      `Max rainfall: ${result.maxRainfallMm}mm`,
+      "Stations reporting rain:",
+      stationLines || "  (radar-only detection)",
+      "",
+      sgt,
+    ].join("\n");
+  } else {
+    const stationLines = result.nearbyStations
+      .map(
+        (s) => `  • ${s.name}: ${s.rainfallMm}mm`
+      )
+      .join("\n");
+
+    message = [
+      "☀️ *Weather Check (Site) — No Rain*",
+      "",
+      `Nearby stations (${result.nearbyStations.length}):`,
+      stationLines || "  (no stations found)",
+      "",
+      sgt,
+    ].join("\n");
+  }
+
+  try {
+    const apiBase = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}`;
+    console.log("Sending Telegram status to chat:", env.TELEGRAM_CHAT_ID);
+
+    let res: Response;
+
+    if (result.radarImage) {
+      // Send radar image with caption
+      const form = new FormData();
+      form.append("chat_id", env.TELEGRAM_CHAT_ID);
+      form.append("caption", message);
+      form.append("parse_mode", "Markdown");
+      form.append(
+        "photo",
+        new Blob([result.radarImage], { type: "image/png" }),
+        "radar.png"
+      );
+      res = await fetch(`${apiBase}/sendPhoto`, {
+        method: "POST",
+        body: form,
+      });
+    } else {
+      // No radar image — send text only
+      res = await fetch(`${apiBase}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: env.TELEGRAM_CHAT_ID,
+          text: message,
+          parse_mode: "Markdown",
+        }),
+      });
+    }
+
+    const body = await res.text();
+    console.log(`Telegram response: ${res.status} ${body}`);
+    return res.ok;
+  } catch (err) {
+    console.error("sendTelegramStatus failed:", err);
+    return false;
+  }
+}

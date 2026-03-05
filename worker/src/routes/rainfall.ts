@@ -3,7 +3,7 @@ import { parseRegionConfig } from "../config";
 import { fetchRainfall } from "../services/nea-client";
 import { filterNearbyStations, fullCheck } from "../services/rain-detector";
 import { saveCapture } from "../services/capture-svc";
-import { sendTelegramAlert } from "../services/alert-svc";
+import { sendTelegramStatus } from "../services/alert-svc";
 import { json } from "./router";
 
 export async function getStations(
@@ -32,12 +32,13 @@ export async function postCheck(
     } catch (err) {
       console.error("saveCapture failed:", err);
     }
+  }
 
-    try {
-      alertSent = await sendTelegramAlert(env, result);
-    } catch (err) {
-      console.error("sendTelegramAlert failed:", err);
-    }
+  // Always send a Telegram status update on manual check
+  try {
+    alertSent = await sendTelegramStatus(env, result);
+  } catch (err) {
+    console.error("sendTelegramStatus failed:", err);
   }
 
   return json({
