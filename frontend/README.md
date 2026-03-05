@@ -1,73 +1,43 @@
-# React + TypeScript + Vite
+# 🐜🌦️ antWeather - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the React frontend for the antWeather Live Radar Map dashboard. It's built as a Single Page Application (SPA) designed to be hosted on **Cloudflare Pages**.
 
-Currently, two official plugins are available:
+## Tech Stack
+- **Framework**: React 18 with Vite using TypeScript.
+- **Styling**: Tailwind CSS for a modern, responsive interface.
+- **Mapping**: `leaflet` and `react-leaflet` for displaying the live radar map, stations, and rain area polygons.
+- **Routing**: `react-router-dom` for navigation between Dashboard, History, Captures, and Settings.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Development
 
-## React Compiler
+To run the frontend locally:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+2. **Configure Environment Variables**:
+   By default, the Vite dev server proxy sends API requests to the local worker on port `8787`. If you want to connect to a deployed production worker, create a `.env` file in this directory and set:
+   ```env
+   VITE_API_URL=https://<your-worker-url>.workers.dev
+   ```
+3. **Start the Dev Server**:
+   ```bash
+   npm run dev
+   ```
 
-## Expanding the ESLint configuration
+## Production Build & Deployment
+The build output is configured to render into the `/dist` folder. 
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Using GitHub Actions, this project is automatically built and deployed to Cloudflare Pages on every push to the `main` branch. 
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+To deploy manually (e.g., to create a preview deployment):
+```bash
+npm run build
+npx wrangler pages deploy dist --project-name=antweather
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## UI/UX Features
+- **Mobile First**: Uses a hamburger menu and compressed layouts for small screens to prioritize the map view.
+- **Collapsible Sidebar**: On desktop, the side navigation can be collapsed into an icon-only mode to save horizontal space.
+- **Live Overlays**: Renders a dynamic image overlay representing rain intensity directly on top of the Leaflet map bounds.
