@@ -1,49 +1,70 @@
-export interface Env {
-  DB: D1Database;
-  CAPTURES: R2Bucket;
-  REGION_CENTER_LAT: string;
-  REGION_CENTER_LNG: string;
-  REGION_POLYGON: string;
-  STATION_RADIUS_KM: string;
-  MIN_RAINFALL_MM: string;
-  CAPTURE_FILE_PATTERN: string;
-  ALERT_COOLDOWN_MIN: string;
-  TELEGRAM_BOT_TOKEN?: string;
-  TELEGRAM_CHAT_ID?: string;
-  RADAR_CLEAR_SIZE_THRESHOLD: string;
-}
+import type { Env } from "./config";
+import { createRouter, json } from "./routes/router";
+import { fullCheck } from "./services/rain-detector";
+import { saveCapture } from "./services/capture-svc";
+import { sendTelegramAlert } from "./services/alert-svc";
+import { getStations, postCheck } from "./routes/rainfall";
+import { listCaptures, getCaptureImage } from "./routes/captures";
+import { getMonthlySummary } from "./routes/summary";
+import { getAlertLog } from "./routes/alerts";
+import { getSettings, putSettings } from "./routes/settings";
 
-const CORS_HEADERS: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+export type { Env };
 
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-  });
-}
+const router = createRouter([
+  { method: "GET", pattern: "/api/rainfall/stations", handler: getStations },
+  { method: "POST", pattern: "/api/rainfall/check", handler: postCheck },
+  { method: "GET", pattern: "/api/captures", handler: listCaptures },
+  { method: "GET", pattern: "/api/captures/:id/image", handler: getCaptureImage },
+  { method: "GET", pattern: "/api/summary/monthly", handler: getMonthlySummary },
+  { method: "GET", pattern: "/api/alerts/log", handler: getAlertLog },
+  { method: "GET", pattern: "/api/settings", handler: getSettings },
+  { method: "PUT", pattern: "/api/settings", handler: putSettings },
+]);
 
 export default {
   async scheduled(
     _event: ScheduledEvent,
-    _env: Env,
+    env: Env,
     _ctx: ExecutionContext
   ): Promise<void> {
-    console.log("Cron triggered — rain check placeholder");
+    try {
+      const result = await fullCheck(env);
+      console.log(
+        `Rain check: raining=${result.isRaining}, maxMm=${result.maxRainfallMm}, stations=${result.rainingStations.length}`
+      );
+
+      if (result.isRaining && result.radarImage) {
+        try {
+          await saveCapture(env, result);
+        } catch (err) {
+          console.error("Cron saveCapture failed:", err);
+        }
+
+        try {
+          await sendTelegramAlert(env, result);
+        } catch (err) {
+          console.error("Cron sendTelegramAlert failed:", err);
+        }
+      }
+    } catch (err) {
+      console.error("Cron fullCheck failed:", err);
+    }
   },
 
   async fetch(
     request: Request,
-    _env: Env,
+    env: Env,
     _ctx: ExecutionContext
   ): Promise<Response> {
-    if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: CORS_HEADERS });
+    try {
+      return await router(request, env);
+    } catch (err) {
+      console.error("Unhandled fetch error:", err);
+      return json(
+        { error: err instanceof Error ? err.message : "Internal error" },
+        500
+      );
     }
-
-    return json({ status: "ok" });
   },
 };
