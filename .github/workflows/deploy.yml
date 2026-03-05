@@ -22,6 +22,9 @@ jobs:
   deploy-frontend:
     runs-on: ubuntu-latest
     name: Deploy Frontend
+    permissions:
+      contents: read
+      deployments: write
     steps:
       - uses: actions/checkout@v4
       
