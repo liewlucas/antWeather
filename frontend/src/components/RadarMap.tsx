@@ -51,16 +51,20 @@ const CENTER: LatLngTuple = [1.354829, 103.990242];
 
 function buildRadarUrl(): string {
     const now = new Date();
-    // Round down to nearest 5 minutes
-    const mins = Math.floor(now.getUTCMinutes() / 5) * 5;
-    const d = new Date(now);
-    d.setUTCMinutes(mins, 0, 0);
+    // NEA Radar is often delayed by a few minutes, subtract 5 mins to be safe
+    const safeTime = new Date(now.getTime() - 5 * 60 * 1000);
+    // Convert to SGT (UTC+8) because NEA filenames use Singapore local time
+    const sgt = new Date(safeTime.getTime() + 8 * 60 * 60 * 1000);
 
-    const y = d.getUTCFullYear();
-    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(d.getUTCDate()).padStart(2, "0");
-    const h = String(d.getUTCHours()).padStart(2, "0");
-    const min = String(d.getUTCMinutes()).padStart(2, "0");
+    // Round down to nearest 5 minutes
+    const mins = Math.floor(sgt.getUTCMinutes() / 5) * 5;
+    sgt.setUTCMinutes(mins, 0, 0);
+
+    const y = sgt.getUTCFullYear();
+    const m = String(sgt.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(sgt.getUTCDate()).padStart(2, "0");
+    const h = String(sgt.getUTCHours()).padStart(2, "0");
+    const min = String(sgt.getUTCMinutes()).padStart(2, "0");
 
     return `https://www.weather.gov.sg/files/rainarea/50km/v2/dpsri_70km_${y}${m}${day}${h}${min}000000dBR.dpsri.png`;
 }
