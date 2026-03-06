@@ -66,7 +66,7 @@ function buildRadarUrl(): string {
     const h = String(sgt.getUTCHours()).padStart(2, "0");
     const min = String(sgt.getUTCMinutes()).padStart(2, "0");
 
-    return `https://www.weather.gov.sg/files/rainarea/50km/v2/dpsri_70km_${y}${m}${day}${h}${min}000000dBR.dpsri.png`;
+    return `https://www.weather.gov.sg/files/rainarea/50km/v2/dpsri_70km_${y}${m}${day}${h}${min}0000dBR.dpsri.png`;
 }
 
 export default function RadarMap({ stations }: RadarMapProps) {

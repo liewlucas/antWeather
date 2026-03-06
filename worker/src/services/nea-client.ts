@@ -86,7 +86,7 @@ export async function fetchRadarImage(): Promise<RadarResult> {
   for (let offset = 0; offset <= 30; offset += 5) {
     const ts = new Date(base.getTime() - offset * 60 * 1000);
     const stamp = formatRadarTimestamp(ts);
-    const url = `https://www.weather.gov.sg/files/rainarea/50km/v2/dpsri_70km_${stamp}000000dBR.dpsri.png`;
+    const url = `https://www.weather.gov.sg/files/rainarea/50km/v2/dpsri_70km_${stamp}0000dBR.dpsri.png`;
 
     try {
       const res = await fetch(url);
