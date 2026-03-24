@@ -8,7 +8,11 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241205.0",
+    "@types/upng-js": "^2.1.5",
     "typescript": "^5.7.0",
     "wrangler": "^3.99.0"
+  },
+  "dependencies": {
+    "upng-js": "^2.1.0"
   }
 }

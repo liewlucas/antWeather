@@ -53,9 +53,25 @@ export async function sendTelegramAlert(
   let error: string | undefined;
 
   try {
-    const res = await fetch(
-      `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-      {
+    const apiBase = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}`;
+    let res: Response;
+
+    if (result.radarImage) {
+      const form = new FormData();
+      form.append("chat_id", env.TELEGRAM_CHAT_ID);
+      form.append("caption", message);
+      form.append("parse_mode", "Markdown");
+      form.append(
+        "photo",
+        new Blob([result.radarImage], { type: "image/png" }),
+        "radar.png"
+      );
+      res = await fetch(`${apiBase}/sendPhoto`, {
+        method: "POST",
+        body: form,
+      });
+    } else {
+      res = await fetch(`${apiBase}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -63,8 +79,8 @@ export async function sendTelegramAlert(
           text: message,
           parse_mode: "Markdown",
         }),
-      }
-    );
+      });
+    }
 
     if (!res.ok) {
       success = false;

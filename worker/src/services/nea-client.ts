@@ -93,10 +93,8 @@ export async function fetchRadarImage(): Promise<RadarResult> {
       if (!res.ok) continue;
 
       const contentLength = res.headers.get("content-length");
-      if (contentLength && parseInt(contentLength) <= 1000) continue;
-
+      // Allow small/empty radar images so we can always apply the map overlay
       const bytes = await res.arrayBuffer();
-      if (bytes.byteLength <= 1000) continue;
 
       return { imageBytes: bytes, timestamp: ts.toISOString() };
     } catch {

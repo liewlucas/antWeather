@@ -6,6 +6,7 @@ import {
   fetchRadarImage,
   type StationReading,
 } from "./nea-client";
+import { overlayRadarWithMap } from "../utils/image";
 
 export interface NearbyStation extends StationReading {
   distanceKm: number;
@@ -55,16 +56,29 @@ export async function fullCheck(env: Env): Promise<CheckResult> {
     : 0;
 
   const sizeThreshold = parseInt(env.RADAR_CLEAR_SIZE_THRESHOLD) || 15000;
+
+  // Decide rain status based on original raw image size BEFORE applying overlay
   const radarRain =
     radarResult.imageBytes !== null &&
     radarResult.imageBytes.byteLength > sizeThreshold;
+
+  let finalRadarImage = radarResult.imageBytes;
+
+  // Always apply map overlay so the user receives a map image on manual check
+  if (finalRadarImage) {
+    try {
+      finalRadarImage = await overlayRadarWithMap(finalRadarImage, config.center);
+    } catch (e) {
+      console.error("overlayRadarWithMap failed:", e);
+    }
+  }
 
   return {
     isRaining: raining.length > 0 || radarRain,
     maxRainfallMm: maxMm,
     nearbyStations: nearby,
     rainingStations: raining,
-    radarImage: radarResult.imageBytes,
+    radarImage: finalRadarImage,
     radarTimestamp: radarResult.timestamp,
     apiTimestamp: rainfallResult.timestamp,
   };
