@@ -1,7 +1,7 @@
 import type { Env } from "../config";
 import type { CheckResult } from "./rain-detector";
 
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent";
 
 const SYSTEM_PROMPT = `You are a rain monitoring bot for the Changi area in Singapore. You have access to live rainfall data from NEA (National Environment Agency) stations and radar imagery.
 
