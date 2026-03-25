@@ -10,6 +10,8 @@ export interface Env {
   ALERT_COOLDOWN_MIN: string;
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
+  TELEGRAM_BOT_USERNAME?: string;
+  GEMINI_API_KEY?: string;
   RADAR_CLEAR_SIZE_THRESHOLD: string;
 }
 

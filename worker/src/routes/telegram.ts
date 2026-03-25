@@ -5,6 +5,7 @@ import { sendTelegramStatus } from "../services/alert-svc";
 import { json } from "./router";
 
 import { addRegisteredChat } from "../services/chat-svc";
+import { askGemini } from "../services/gemini-svc";
 
 async function sendTelegramMessage(env: Env, chatId: string, text: string): Promise<void> {
     if (!env.TELEGRAM_BOT_TOKEN) return;
@@ -67,6 +68,20 @@ export async function postWebhook(
 
                 // Reply directly to the telegram user with the status
                 await sendTelegramStatus(env, result, chatId);
+            }
+
+            // Handle @botusername mentions — weather questions via Gemini
+            if (env.GEMINI_API_KEY && env.TELEGRAM_BOT_USERNAME) {
+                const botMention = `@${env.TELEGRAM_BOT_USERNAME.toLowerCase()}`;
+                if (text.toLowerCase().includes(botMention)) {
+                    const userQuery = text.replace(new RegExp(`@${env.TELEGRAM_BOT_USERNAME}`, "gi"), "").trim();
+                    if (userQuery) {
+                        console.log(`Gemini mention from ${chatName}: "${userQuery}"`);
+                        const result = await fullCheck(env);
+                        const reply = await askGemini(env, userQuery, result);
+                        await sendTelegramMessage(env, chatId, reply);
+                    }
+                }
             }
         }
 
