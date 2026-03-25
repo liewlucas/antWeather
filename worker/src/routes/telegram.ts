@@ -6,6 +6,19 @@ import { json } from "./router";
 
 import { addRegisteredChat } from "../services/chat-svc";
 
+async function sendTelegramMessage(env: Env, chatId: string, text: string): Promise<void> {
+    if (!env.TELEGRAM_BOT_TOKEN) return;
+    try {
+        await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text }),
+        });
+    } catch (err) {
+        console.error("sendTelegramMessage failed:", err);
+    }
+}
+
 export async function postWebhook(
     req: Request,
     env: Env
@@ -30,8 +43,12 @@ export async function postWebhook(
             const chatName = body.message.chat.title || body.message.chat.first_name || "User";
 
             if (text.startsWith("/start")) {
-                await addRegisteredChat(env, chatId, chatName);
-                console.log(`Registered new user chat: ${chatName} (${chatId})`);
+                const isNew = await addRegisteredChat(env, chatId, chatName);
+                const msg = isNew
+                    ? `Hey! This chat has been registered for rain alerts. You'll receive notifications when rain is detected near Changi.\n\nCommands:\n/checknow - Run an immediate rain check\n/start - Register this chat`
+                    : `This chat is already registered for rain alerts!\n\nCommands:\n/checknow - Run an immediate rain check`;
+                await sendTelegramMessage(env, chatId, msg);
+                console.log(`${isNew ? "Registered new" : "Already registered"} chat: ${chatName} (${chatId})`);
             }
 
             if (text.startsWith("/checknow")) {
