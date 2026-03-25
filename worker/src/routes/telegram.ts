@@ -8,13 +8,17 @@ import { addRegisteredChat } from "../services/chat-svc";
 import { askGemini } from "../services/gemini-svc";
 import { fetchForecast } from "../services/nea-client";
 
-async function sendTelegramMessage(env: Env, chatId: string, text: string): Promise<void> {
+async function sendTelegramMessage(env: Env, chatId: string, text: string, replyToMessageId?: number): Promise<void> {
     if (!env.TELEGRAM_BOT_TOKEN) return;
     try {
+        const payload: Record<string, unknown> = { chat_id: chatId, text };
+        if (replyToMessageId) {
+            payload.reply_to_message_id = replyToMessageId;
+        }
         await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: chatId, text }),
+            body: JSON.stringify(payload),
         });
     } catch (err) {
         console.error("sendTelegramMessage failed:", err);
@@ -43,13 +47,14 @@ export async function postWebhook(
             const text = body.message.text.trim();
             const chatId = body.message.chat.id.toString();
             const chatName = body.message.chat.title || body.message.chat.first_name || "User";
+            const messageId: number | undefined = body.message.message_id;
 
             if (text.startsWith("/start")) {
                 const isNew = await addRegisteredChat(env, chatId, chatName);
                 const msg = isNew
                     ? `Hey! This chat has been registered for rain alerts. You'll receive notifications when rain is detected near Changi.\n\nCommands:\n/checknow - Run an immediate rain check\n/start - Register this chat`
                     : `This chat is already registered for rain alerts!\n\nCommands:\n/checknow - Run an immediate rain check`;
-                await sendTelegramMessage(env, chatId, msg);
+                await sendTelegramMessage(env, chatId, msg, messageId);
                 console.log(`${isNew ? "Registered new" : "Already registered"} chat: ${chatName} (${chatId})`);
             }
 
@@ -71,8 +76,22 @@ export async function postWebhook(
                 await sendTelegramStatus(env, result, chatId);
             }
 
+            // Check if user is replying to a bot message
+            let geminiHandled = false;
+            const replyToBot = body.message.reply_to_message?.from?.username?.toLowerCase() === env.TELEGRAM_BOT_USERNAME?.toLowerCase();
+
+            if (replyToBot && env.GEMINI_API_KEY && text) {
+                geminiHandled = true;
+                const [result, forecast] = await Promise.all([
+                    fullCheck(env),
+                    fetchForecast(),
+                ]);
+                const reply = await askGemini(env, text, result, forecast);
+                await sendTelegramMessage(env, chatId, reply, messageId);
+            }
+
             // Handle @botusername mentions — weather questions via Gemini
-            if (env.GEMINI_API_KEY && env.TELEGRAM_BOT_USERNAME) {
+            if (!geminiHandled && env.GEMINI_API_KEY && env.TELEGRAM_BOT_USERNAME) {
                 const botMention = `@${env.TELEGRAM_BOT_USERNAME.toLowerCase()}`;
                 if (text.toLowerCase().includes(botMention)) {
                     const userQuery = text.replace(new RegExp(`@${env.TELEGRAM_BOT_USERNAME}`, "gi"), "").trim();
@@ -82,7 +101,7 @@ export async function postWebhook(
                             fetchForecast(),
                         ]);
                         const reply = await askGemini(env, userQuery, result, forecast);
-                        await sendTelegramMessage(env, chatId, reply);
+                        await sendTelegramMessage(env, chatId, reply, messageId);
                     }
                 }
             }
