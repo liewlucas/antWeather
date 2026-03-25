@@ -11,7 +11,8 @@ export function buildR2Key(pattern: string, timestamp: Date): string {
   const expanded = expandPattern(pattern, timestamp);
   const year = String(timestamp.getUTCFullYear());
   const month = String(timestamp.getUTCMonth() + 1).padStart(2, "0");
-  return `${year}/${month}/${expanded}_radar.png`;
+  const day = String(timestamp.getUTCDate()).padStart(2, "0");
+  return `${year}/${month}/${day}/${expanded}_radar.png`;
 }
 
 export async function saveCapture(

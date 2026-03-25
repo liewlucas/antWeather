@@ -4,7 +4,7 @@ import { fullCheck } from "./services/rain-detector";
 import { saveCapture } from "./services/capture-svc";
 import { sendTelegramAlert } from "./services/alert-svc";
 import { getStations, postCheck } from "./routes/rainfall";
-import { listCaptures, getCaptureImage } from "./routes/captures";
+import { listCaptureDates, listCaptures, getCaptureImage, migrateCaptures } from "./routes/captures";
 import { getMonthlySummary } from "./routes/summary";
 import { getAlertLog } from "./routes/alerts";
 import { getSettings, putSettings, deleteChat } from "./routes/settings";
@@ -16,8 +16,10 @@ export type { Env };
 const router = createRouter([
   { method: "GET", pattern: "/api/rainfall/stations", handler: getStations },
   { method: "POST", pattern: "/api/rainfall/check", handler: postCheck },
+  { method: "GET", pattern: "/api/captures/dates", handler: listCaptureDates },
   { method: "GET", pattern: "/api/captures", handler: listCaptures },
   { method: "GET", pattern: "/api/captures/:id/image", handler: getCaptureImage },
+  { method: "POST", pattern: "/api/captures/migrate", handler: migrateCaptures },
   { method: "GET", pattern: "/api/summary/monthly", handler: getMonthlySummary },
   { method: "GET", pattern: "/api/alerts/log", handler: getAlertLog },
   { method: "GET", pattern: "/api/settings", handler: getSettings },
