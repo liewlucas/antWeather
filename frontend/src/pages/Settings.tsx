@@ -24,6 +24,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [deletingChat, setDeletingChat] = useState<string | null>(null);
 
   const { data: alerts } = useApi<AlertLog[]>("/api/alerts/log?limit=20");
 
@@ -33,6 +34,22 @@ export default function Settings() {
       .catch(() => setMessage("Failed to load settings"))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleDeleteChat = async (chatId: string, chatName: string) => {
+    if (!confirm(`Remove "${chatName}" (${chatId})? They can re-register by typing /start.`)) return;
+    setDeletingChat(chatId);
+    try {
+      const updated = await apiFetch<Record<string, string>>(`/api/settings/chats/${chatId}`, {
+        method: "DELETE",
+      });
+      setSettings(updated);
+      setMessage("Group removed");
+    } catch {
+      setMessage("Failed to remove group");
+    } finally {
+      setDeletingChat(null);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -76,7 +93,7 @@ export default function Settings() {
           ))}
 
           <div key="target_telegram_chat">
-            <label className="block text-xs text-gray-400 mb-1 flex items-center justify-between">
+            <label className="flex text-xs text-gray-400 mb-1 items-center justify-between">
               Target Telegram Chat
             </label>
             <select
@@ -103,6 +120,43 @@ export default function Settings() {
               })()}
             </select>
           </div>
+          {(() => {
+            let chats: { id: string; name: string }[] = [];
+            try {
+              if (settings.registered_chats) {
+                chats = JSON.parse(settings.registered_chats);
+              }
+            } catch {}
+            if (chats.length === 0) return null;
+            return (
+              <div>
+                <label className="block text-xs text-gray-400 mb-2">
+                  Registered Groups
+                </label>
+                <div className="space-y-2">
+                  {chats.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center justify-between bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm"
+                    >
+                      <span>
+                        {c.name}{" "}
+                        <span className="text-gray-500">({c.id})</span>
+                      </span>
+                      <button
+                        onClick={() => handleDeleteChat(c.id, c.name)}
+                        disabled={deletingChat === c.id}
+                        className="text-red-400 hover:text-red-300 disabled:text-gray-600 text-xs ml-4"
+                      >
+                        {deletingChat === c.id ? "Removing..." : "Remove"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="flex items-center gap-3">
             <button
               onClick={handleSave}

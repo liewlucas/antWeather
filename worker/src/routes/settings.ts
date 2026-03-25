@@ -1,5 +1,6 @@
 import type { Env } from "../config";
 import { json } from "./router";
+import { removeRegisteredChat } from "../services/chat-svc";
 
 const ENV_DEFAULTS: Record<string, (env: Env) => string> = {
   region_center_lat: (e) => e.REGION_CENTER_LAT,
@@ -48,4 +49,22 @@ export async function putSettings(
   }
 
   return getSettings(req, env);
+}
+
+export async function deleteChat(
+  _req: Request,
+  env: Env,
+  params: Record<string, string>
+): Promise<Response> {
+  const chatId = params.id;
+  if (!chatId) {
+    return json({ error: "Missing chat ID" }, 400);
+  }
+
+  const removed = await removeRegisteredChat(env, chatId);
+  if (!removed) {
+    return json({ error: "Chat not found" }, 404);
+  }
+
+  return getSettings(_req, env);
 }

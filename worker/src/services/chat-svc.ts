@@ -39,6 +39,34 @@ export async function addRegisteredChat(env: Env, id: string, name: string): Pro
     }
 }
 
+export async function removeRegisteredChat(env: Env, id: string): Promise<boolean> {
+    const chats = await getRegisteredChats(env);
+    const filtered = chats.filter((c) => c.id !== id);
+
+    if (filtered.length === chats.length) {
+        return false; // Chat not found
+    }
+
+    try {
+        await env.DB.prepare(
+            "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('registered_chats', ?, datetime('now'))"
+        ).bind(JSON.stringify(filtered)).run();
+
+        // If the deleted chat was the active target, reset to "all"
+        const target = await getTargetTelegramChat(env);
+        if (target === id) {
+            await env.DB.prepare(
+                "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('target_telegram_chat', 'all', datetime('now'))"
+            ).run();
+        }
+
+        return true;
+    } catch (err) {
+        console.error("removeRegisteredChat failed:", err);
+        return false;
+    }
+}
+
 export async function getTargetTelegramChat(env: Env): Promise<string> {
     try {
         const row = await env.DB.prepare(
